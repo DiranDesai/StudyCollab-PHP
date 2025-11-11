@@ -1,133 +1,240 @@
 <?php
+// discussions.php
 session_start();
+
+// ✅ Prevent browser caching
+header("Cache-Control: no-cache, no-store, must-revalidate");
+header("Pragma: no-cache");
+header("Expires: 0");
+
 require '../includes/db.php';
 
+// ✅ Check login
 if (!isset($_SESSION['user_id'])) {
     header("Location: ../auth/login.php");
     exit();
 }
 
-$user_id = intval($_SESSION['user_id']);
-$user_name = $_SESSION['name'] ?? 'Student';
-$user_role = ucfirst($_SESSION['role'] ?? 'Student');
-$user_image = $_SESSION['image'] ?? 'default-avatar.png'; // assuming profile image filename is stored in session
+$user_id       = intval($_SESSION['user_id']);
+$user_name     = $_SESSION['name'] ?? 'Student';
+$user_email    = $_SESSION['email'] ?? 'student@example.com';
+$first_name    = explode(' ', trim($user_name))[0];
+$profile_photo = $_SESSION['profile_photo'] ?? null;
 
-// Fetch discussions
-$discussions = $conn->query("
-    SELECT d.id, d.title, d.content, d.user_id, d.created_at, u.name AS author, u.image AS author_image
-    FROM discussions d
-    JOIN users u ON d.user_id = u.id
-    ORDER BY d.created_at DESC
+// ✅ Ensure discussion_replies table exists (safe)
+$createRepliesSql = "
+CREATE TABLE IF NOT EXISTS discussion_replies (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    discussion_id INT NOT NULL,
+    user_id INT NOT NULL,
+    message TEXT NOT NULL,
+    sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (discussion_id) REFERENCES group_discussions(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+";
+$conn->query($createRepliesSql);
+
+// ✅ Fetch user groups
+$stmtG = $conn->prepare("SELECT g.id, g.group_name, g.leader_id 
+                         FROM groups g 
+                         JOIN group_members gm ON gm.group_id = g.id 
+                         WHERE gm.user_id = ?");
+$stmtG->bind_param("i", $user_id);
+$stmtG->execute();
+$resG = $stmtG->get_result();
+$userGroupsArr = $resG->fetch_all(MYSQLI_ASSOC);
+$stmtG->close();
+
+// ✅ Fetch group discussions
+$stmt = $conn->prepare("
+    SELECT d.id, d.group_id, d.user_id, d.title, d.content, d.sent_at, g.group_name, g.leader_id
+    FROM group_discussions d
+    JOIN groups g ON d.group_id = g.id
+    JOIN group_members gm ON gm.group_id = g.id
+    WHERE gm.user_id = ?
+    ORDER BY d.sent_at DESC
+    LIMIT 100
 ");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$discussions_res = $stmt->get_result();
+$discussions = $discussions_res->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
 
-// Handle new discussion submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['title'], $_POST['content'])) {
-    $title = $conn->real_escape_string($_POST['title']);
-    $content = $conn->real_escape_string($_POST['content']);
-
-    $conn->query("INSERT INTO discussions (title, content, user_id, created_at) VALUES ('$title', '$content', $user_id, NOW())");
-    header("Location: discussions.php"); // Refresh page
-    exit();
+// ✅ Map leader names
+$leaderIds = [];
+foreach ($discussions as $d) { 
+    $leaderIds[$d['leader_id']] = true; 
+}
+$leaderNames = [];
+if (!empty($leaderIds)) {
+    $ids = array_keys($leaderIds);
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    $types = str_repeat('i', count($ids));
+    $sql = "SELECT id, fullname FROM users WHERE id IN ($placeholders)";
+    $stmt2 = $conn->prepare($sql);
+    $stmt2->bind_param($types, ...$ids);
+    $stmt2->execute();
+    $r = $stmt2->get_result();
+    while ($row = $r->fetch_assoc()) {
+        $leaderNames[$row['id']] = $row['fullname'];
+    }
+    $stmt2->close();
 }
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Discussions | StudentCollabo</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Group Discussions | StudyCollabo</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <style>
-body { background-color: #f8f9fa; overflow-x: hidden; }
-.sidebar { width: 250px; background-color: #ff4500; position: fixed; top: 0; left: 0; height: 100%; color: #fff; transition: width 0.3s; }
-.sidebar.collapsed { width: 80px; }
-.sidebar .nav-link { color: #fff; padding: 12px 20px; }
-.sidebar .nav-link:hover, .sidebar .nav-link.active { background: rgba(255,255,255,0.2); border-radius: 8px; }
-.sidebar .sidebar-header { text-align: center; font-weight: bold; padding: 20px 10px; border-bottom: 1px solid rgba(255,255,255,0.2); }
-.sidebar.collapsed .sidebar-header h4 { display: none; }
-.sidebar.collapsed .nav-link span { display: none; }
-.main-content { margin-left: 250px; padding: 30px; transition: margin-left 0.3s; }
-.collapsed + .main-content { margin-left: 80px; }
-.topbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 25px; }
-.sidebar-toggle { background: none; border: none; color: #ff4500; font-size: 1.5rem; }
-.welcome-message { white-space: nowrap; }
-.discussion-card { background: #fff; border-radius: 10px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); display: flex; gap: 10px; }
-.discussion-card img { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; }
-.discussion-card-content { flex: 1; }
-.discussion-card h5 { color: #ff4500; margin: 0 0 5px 0; }
-.discussion-card small { display: block; color: #888; }
-.discussion-form { margin-bottom: 30px; }
+:root { --primary:#1a73e8; --surface:#fff; --bg:#f8f9fa; --text:#202124; --muted:#5f6368; }
+body { font-family:'Google Sans',sans-serif; background:var(--bg); color:var(--text); margin:0; overflow-x:hidden; }
+
+.sidebar { width:250px; height:100vh; background:var(--surface); border-right:1px solid #ddd; position:fixed; top:0; left:0; transition: width 0.3s; overflow:hidden; }
+.sidebar.collapsed { width:80px; }
+.sidebar .logo { font-size:1.3rem; font-weight:600; color:var(--primary); padding:20px; display:flex; align-items:center; gap:8px; }
+.sidebar ul { list-style:none; padding:0; margin:0; }
+.sidebar ul li a { display:flex; align-items:center; gap:15px; padding:12px 20px; color:#333; text-decoration:none; border-radius:10px; margin:5px 10px; transition:0.3s; font-weight:500; }
+.sidebar ul li a:hover, .sidebar ul li a.active { background:#e8f0fe; color:var(--primary); }
+
+.topbar { display:flex; justify-content:space-between; align-items:center; height:64px; background:var(--surface); padding:0 20px; border-bottom:1px solid #ddd; position:fixed; top:0; left:0; width:100%; z-index:99; }
+
+.profile-btn { border:none; background:transparent; display:flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:50%; color:#fff; background:var(--primary); font-weight:600; cursor:pointer; }
+.profile-btn img { width:100%; height:100%; border-radius:50%; object-fit:cover; }
+.profile-menu { position:absolute; right:0; top:50px; width:300px; background:#fff; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.1); display:none; z-index:100; }
+.profile-menu.active { display:block; }
+.profile-header { padding:16px; text-align:center; border-bottom:1px solid #eee; }
+.profile-header img { width:60px; height:60px; border-radius:50%; margin-bottom:10px; object-fit:cover; }
+.profile-header h6 { margin:0 0 4px; font-weight:600; }
+.profile-header small { color:#555; }
+.profile-menu a { display:block; padding:10px 16px; color:#333; text-decoration:none; }
+.profile-menu a:hover { background:#f5f5f5; }
+
+main { margin-left:250px; padding:90px 30px 40px; transition:margin-left 0.3s; }
+main.collapsed { margin-left:80px; }
+
+.discussion-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; margin-top:20px; }
+.discussion-card { background:var(--surface); border:1px solid #e0e0e0; border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:8px; }
+.discussion-title { font-weight:600; font-size:1.05rem; }
+.discussion-meta { color:#666; font-size:0.85rem; }
+.discussion-content { color:#333; font-size:0.95rem; white-space:pre-wrap; max-height:120px; overflow:auto; }
+.reply-list { margin-top:10px; border-top:1px solid #eee; padding-top:8px; max-height:220px; overflow:auto; }
+.reply { background:#fafafa; border-radius:8px; padding:8px; font-size:0.92rem; margin-bottom:5px; }
+.reply small { color:#666; font-size:0.8rem; display:block; margin-top:5px; }
+
+@media(max-width:768px){ main{margin-left:0!important;padding-top:80px;} .sidebar{display:none;} }
 </style>
 </head>
 <body>
 
-<!-- Sidebar -->
 <div class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-        <h4><i class="bi bi-people-fill"></i> StudyCollabo</h4>
-    </div>
-    <nav class="nav flex-column">
-        <a href="dashboard.php" class="nav-link"><i class="bi bi-speedometer2 me-2"></i><span>Dashboard</span></a>
-        <a href="tasks.php" class="nav-link"><i class="bi bi-list-task me-2"></i><span>My Tasks</span></a>
-        <a href="group_tasks.php" class="nav-link"><i class="bi bi-people me-2"></i><span>Group Tasks</span></a>
-        <a href="student_groups.php" class="nav-link"><i class="bi bi-people-fill me-2"></i><span>Student Groups</span></a>
-        <a href="discussions.php" class="nav-link active"><i class="bi bi-chat-left-text me-2"></i><span>Discussions</span></a>
-        <a href="resources.php" class="nav-link"><i class="bi bi-journal me-2"></i><span>Resources</span></a>
-    </nav>
+    <div class="logo"><i class="bi bi-journal-text"></i> <span>StudyCollabo</span></div>
+    <ul>
+        <li><a href="dashboard.php"><i class="bi bi-grid"></i>Dashboard</a></li>
+        <li><a href="tasks.php"><i class="bi bi-person-check"></i>My Tasks</a></li>
+        <li><a href="group_tasks.php"><i class="bi bi-people"></i>Group Tasks</a></li>
+        <li><a href="calendar.php"><i class="bi bi-calendar3"></i>Calendar</a></li>
+        <li><a href="discussions.php" class="active"><i class="bi bi-chat-dots"></i>Discussions</a></li>
+    </ul>
 </div>
 
-<!-- Main Content -->
-<div class="main-content" id="main-content">
-    <div class="topbar">
-        <button class="sidebar-toggle" id="toggleSidebar"><i class="bi bi-list"></i></button>
-        <div class="welcome-message text-dark"><strong>Welcome</strong> <?php echo htmlspecialchars($user_name); ?> (<?php echo htmlspecialchars($user_role); ?>)</div>
+<main id="main">
+    <div class="topbar" id="topbar">
+        <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-light" id="toggleSidebar"><i class="bi bi-list"></i></button>
+            <img src="assets/img/SClogo.png" alt="Logo" style="height:32px;">
+        </div>
+
+        <div class="search-box mx-auto">
+            <i class="bi bi-search"></i>
+            <input id="liveSearch" type="text" placeholder="Search discussions..." class="form-control rounded-pill ps-5">
+        </div>
+
+        <!-- ✅ Profile button only (no +Create) -->
+        <div class="d-flex align-items-center gap-2">
+            <button class="profile-btn" id="profileBtn">
+                <?php if($profile_photo): ?>
+                    <img src="<?= htmlspecialchars($profile_photo) ?>" alt="Avatar">
+                <?php else: ?>
+                    <?= strtoupper(substr($first_name,0,1)) ?>
+                <?php endif; ?>
+            </button>
+            <div class="profile-menu" id="profileMenu">
+                <div class="profile-header">
+                    <?php if($profile_photo): ?>
+                        <img src="<?= htmlspecialchars($profile_photo) ?>" alt="Avatar">
+                    <?php else: ?>
+                        <div style="width:60px;height:60px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:600;margin:0 auto 10px;">
+                            <?= strtoupper(substr($first_name,0,1)) ?>
+                        </div>
+                    <?php endif; ?>
+                    <h6>Hey, <?= htmlspecialchars($first_name) ?></h6>
+                    <small><?= htmlspecialchars($user_email) ?></small>
+                </div>
+                <a href="settings.php"><i class="bi bi-gear me-2"></i>Settings</a>
+                <a href="../auth/logout.php" class="text-danger"><i class="bi bi-box-arrow-right me-2"></i>Logout</a>
+            </div>
+        </div>
     </div>
 
-    <!-- New Discussion Form -->
-    <div class="discussion-form">
-        <h4>Start a New Discussion</h4>
-        <form method="POST" action="">
-            <div class="mb-3">
-                <input type="text" name="title" class="form-control" placeholder="Discussion Title" required>
-            </div>
-            <div class="mb-3">
-                <textarea name="content" class="form-control" rows="4" placeholder="Type your discussion content..." required></textarea>
-            </div>
-            <button type="submit" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i> Post Discussion</button>
-        </form>
-    </div>
-
-    <!-- Discussions List -->
-    <div class="discussions-list">
-        <h4>Recent Discussions</h4>
-        <?php if($discussions->num_rows > 0): ?>
-            <?php while($d = $discussions->fetch_assoc()): ?>
-                <div class="discussion-card">
-                    <img src="../uploads/<?php echo htmlspecialchars($d['author_image'] ?? 'default-avatar.png'); ?>" alt="Profile Image">
-                    <div class="discussion-card-content">
-                        <h5><?php echo htmlspecialchars($d['title']); ?></h5>
-                        <p><?php echo nl2br(htmlspecialchars($d['content'])); ?></p>
-                        <small>By <?php echo htmlspecialchars($d['author']); ?> on <?php echo date('M d, Y H:i', strtotime($d['created_at'])); ?></small>
+    <!-- Create Discussion -->
+    <div class="mt-4">
+        <h5>Start a Discussion</h5>
+        <div class="card p-3 mt-2">
+            <form id="createDiscussionForm">
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <select name="group_id" class="form-select" required>
+                            <option value="">Select Group</option>
+                            <?php foreach($userGroupsArr as $g): ?>
+                                <option value="<?= $g['id'] ?>"><?= htmlspecialchars($g['group_name']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-8">
+                        <input name="title" class="form-control" placeholder="Discussion title" required>
                     </div>
                 </div>
-            <?php endwhile; ?>
-        <?php else: ?>
-            <p>No discussions yet. Start the first discussion!</p>
+                <textarea name="content" rows="3" class="form-control mt-2" placeholder="Discussion content..." required></textarea>
+                <div class="text-end mt-2">
+                    <button class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i>Create Discussion</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Discussions list -->
+    <h5 class="mt-4">Discussions</h5>
+    <div class="discussion-cards">
+        <?php if($discussions): foreach($discussions as $d): ?>
+            <div class="discussion-card" id="discussion-<?= $d['id'] ?>">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <div class="discussion-title"><?= htmlspecialchars($d['title']) ?></div>
+                        <div class="discussion-meta">Group: <?= htmlspecialchars($d['group_name']) ?> — by <?= htmlspecialchars($leaderNames[$d['leader_id']] ?? 'Leader') ?></div>
+                    </div>
+                    <small class="text-muted"><?= date("M d, Y H:i", strtotime($d['sent_at'])) ?></small>
+                </div>
+                <div class="discussion-content"><?= nl2br(htmlspecialchars($d['content'])) ?></div>
+            </div>
+        <?php endforeach; else: ?>
+            <p class="text-muted">No discussions yet.</p>
         <?php endif; ?>
     </div>
-</div>
+</main>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-const toggleSidebar = document.getElementById('toggleSidebar');
-const sidebar = document.getElementById('sidebar');
-const mainContent = document.getElementById('main-content');
-toggleSidebar.addEventListener('click', () => {
-    sidebar.classList.toggle('collapsed');
-    mainContent.classList.toggle('collapsed');
-});
+const sidebar=document.getElementById('sidebar');
+document.getElementById('toggleSidebar').onclick=()=>{sidebar.classList.toggle('collapsed');document.getElementById('main').classList.toggle('collapsed');};
+const profileBtn=document.getElementById('profileBtn'),menu=document.getElementById('profileMenu');
+profileBtn.onclick=e=>{e.stopPropagation();menu.classList.toggle('active');};
+document.onclick=e=>{if(!menu.contains(e.target)&&!profileBtn.contains(e.target))menu.classList.remove('active');};
 </script>
 </body>
 </html>

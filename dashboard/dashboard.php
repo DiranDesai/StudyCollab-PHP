@@ -1,5 +1,10 @@
 <?php
 session_start();
+
+header("Cache-Control: no-cache, no-store, must-revalidate");
+header("Pragma: no-cache");
+header("Expires: 0");
+
 require '../includes/db.php';
 
 if (!isset($_SESSION['user_id'])) {
@@ -8,13 +13,18 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $user_id = intval($_SESSION['user_id']);
-$user_name = $_SESSION['name'] ?? 'Student';
-$user_role = ucfirst($_SESSION['role'] ?? 'Student');
+$user_name  = $_SESSION['name'] ?? 'Student';
+$user_email = $_SESSION['email'] ?? 'student@example.com';
+$first_name = explode(' ', trim($user_name))[0];
 
-// Fetch summary data
-$personal_tasks = $conn->query("SELECT COUNT(*) AS total FROM tasks WHERE user_id = $user_id")->fetch_assoc()['total'];
-$group_tasks = $conn->query("SELECT COUNT(*) AS total FROM group_tasks WHERE leader_id = $user_id OR group_id IN (SELECT group_id FROM group_members WHERE user_id = $user_id)")->fetch_assoc()['total'];
-$upcoming_tasks = $conn->query("SELECT title, due_date FROM tasks WHERE user_id = $user_id AND due_date >= CURDATE() ORDER BY due_date ASC LIMIT 3");
+// Profile photo (null if not uploaded)
+$profile_photo = $_SESSION['profile_photo'] ?? null;
+
+// Fetch data from DB
+$total_tasks     = $conn->query("SELECT COUNT(*) AS total FROM tasks WHERE user_id = $user_id")->fetch_assoc()['total'] ?? 0;
+$completed_tasks = $conn->query("SELECT COUNT(*) AS total FROM tasks WHERE user_id = $user_id AND status='completed'")->fetch_assoc()['total'] ?? 0;
+$group_tasks     = $conn->query("SELECT COUNT(*) AS total FROM group_tasks WHERE leader_id = $user_id OR group_id IN (SELECT group_id FROM group_members WHERE user_id = $user_id)")->fetch_assoc()['total'] ?? 0;
+$progress        = $total_tasks > 0 ? round(($completed_tasks / $total_tasks) * 100) : 0;
 $recent_activity = $conn->query("SELECT title, created_at FROM group_tasks ORDER BY created_at DESC LIMIT 5");
 ?>
 
@@ -23,318 +33,227 @@ $recent_activity = $conn->query("SELECT title, created_at FROM group_tasks ORDER
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard | StudentCollabo</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+<title>Dashboard | StudyCollabo</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
+    
+/* Root & Body */
+:root { --primary:#1a73e8; --surface:#fff; --bg:#f8f9fa; --text:#202124; --muted:#5f6368; }
+body { font-family:'Google Sans',sans-serif; margin:0; background:var(--bg); color:var(--text); overflow-x:hidden; }
 
-@import url('https://fonts.googleapis.com/css2?family=Cookie&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
-body {
-    background-color: #f8f9fa;
-    overflow-x: hidden;
-    font-family: 'Poppins', sans-serif;
-}
-.sidebar {
-    width: 250px;
-    background-color: #ff4500;
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 100%;
-    color: #fff;
-    transition: width 0.3s;
-}
-.sidebar.collapsed {
-    width: 80px;
-}
-.sidebar .nav-link {
-    color: #fff;
-    padding: 12px 20px;
-}
-.sidebar .nav-link:hover, .sidebar .nav-link.active {
-    background: rgba(255,255,255,0.2);
-    border-radius: 8px;
-}
-.sidebar .sidebar-header {
-    text-align: center;
-    font-weight: bold;
-    padding: 20px 10px;
-    border-bottom: 1px solid rgba(255,255,255,0.2);
-}
-.sidebar.collapsed .sidebar-header h4 {
-    display: none;
-}
-.sidebar.collapsed .nav-link span {
-    display: none;
-}
-.main-content {
-    margin-left: 250px;
-    padding: 30px;
-    transition: margin-left 0.3s;
-}
-.collapsed + .main-content {
-    margin-left: 80px;
-}
+/* Sidebar */
+.sidebar { width:250px; height:100vh; background:var(--surface); border-right:1px solid #ddd; position:fixed; top:0; left:0; transition: width 0.3s; overflow:hidden; }
+.sidebar.collapsed { width:80px; }
+.sidebar .logo { font-size:1.3rem; font-weight:600; color:var(--primary); padding:20px; display:flex; align-items:center; gap:8px; }
+.sidebar ul { list-style:none; padding:0; margin:0; }
+.sidebar ul li a { display:flex; align-items:center; gap:15px; padding:12px 20px; color:#333; text-decoration:none; font-weight:500; border-radius:10px; margin:5px 10px; transition:0.3s; }
+.sidebar ul li a:hover, .sidebar ul li a.active { background:#e8f0fe; color:var(--primary); }
+.sidebar.collapsed ul li a span { display:none; }
+
+/* Topbar */
 .topbar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 25px;
-}
-.topbar .search-box {
-    flex: 1 1 300px;
-    min-width: 150px;
-}
-.dashboard-cards {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-}
-.card-stat {
-    flex: 1 1 220px;
-    padding: 18px;
-    border-radius: 12px;
-    background: #fff;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    text-align: center;
-}
-.card-stat h3 {
-    color: #ff4500;
-    font-weight: bold;
-}
-.recent-activity {
-    margin-top: 40px;
-}
-.sidebar-toggle {
-    background: none;
-    border: none;
-    color: #ff4500;
-    font-size: 1.5rem;
-}
-.icon-stl{
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: deepskyblue;
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    margin: 10px auto;
-}
-.icon-stl i{
-    color: white;
-}
-.welcome-message {
-    white-space: nowrap;
+    gap: 8px;
+    height: 64px;
+    background: var(--surface);
+    padding: 0 20px;
+    border-bottom: 1px solid #ddd;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 99;
 }
 
-.recent-activity .card {
-    border: none;
-    transition: transform 0.2s, box-shadow 0.2s;
-}
+/* Topbar elements */
+.top-left { display:flex; align-items:center; gap:10px; }
+.top-left img { height:32px; }
+.search-box { position:relative; width:320px; }
+.search-box input { width:100%; padding:8px 35px; border-radius:25px; border:1px solid #ddd; background:#f1f3f4; }
+.search-box i { position:absolute; top:8px; left:12px; color:#888; }
 
-.recent-activity .card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-}
+/* Profile */
+.profile-btn { border:none; background:transparent; display:flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:50%; font-weight:600; font-size:14px; color:#fff; background:#1a73e8; cursor:pointer; position:relative; }
+.profile-btn img { width:100%; height:100%; border-radius:50%; object-fit:cover; }
+.profile-menu { position:absolute; right:0; top:50px; width:260px; background:#fff; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.1); display:none; z-index:100; }
+.profile-menu.active { display:block; }
+.profile-header { padding:16px; text-align:center; border-bottom:1px solid #eee; }
+.profile-header img { width:60px; height:60px; border-radius:50%; margin-bottom:10px; object-fit:cover; }
+.profile-header h6 { margin:0 0 4px; font-weight:600; }
+.profile-header small { color:#555; }
+.profile-menu a { display:block; padding:10px 16px; text-decoration:none; color:#333; }
+.profile-menu a:hover { background:#f5f5f5; }
 
-.activity-icon {
-    width: 40px;
-    height: 40px;
-    font-size: 1.2rem;
-    flex-shrink: 0;
-    transition: transform 0.3s;
-}
+/* Main content */
+main { margin-left:250px; padding:90px 30px 40px; transition: margin-left 0.3s; }
+main.collapsed { margin-left:80px; }
 
-.dashboard-cards {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-    margin-bottom: 30px;
-}
-.card-stat {
-    border-radius: 12px;
-    padding: 20px;
-    min-width: 220px;
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-.card-stat:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-}
-.icon-stl {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-radius: 50%;
-    margin: 0 auto 15px auto;
-}
-.icon-stl i {
-    font-size: 1.5rem;
-}
-ul {
-    padding-left: 0;
-    margin: 0;
-}
-ul li {
-    line-height: 1.4;
-}
+/* Cards */
+.dashboard-cards { display:flex; flex-wrap:wrap; gap:20px; }
+.card-stat { flex:1; min-width:220px; background:var(--surface); border:1px solid #ddd; border-radius:12px; padding:20px; text-align:center; transition:transform .2s, box-shadow .2s; }
+.card-stat:hover { transform:translateY(-3px); box-shadow:0 4px 15px rgba(0,0,0,0.08); }
+.card-stat h3 { font-size:2rem; margin:10px 0 5px; color: var(--primary); }
+.card-stat p { margin:0; font-weight:500; color:#555; }
+.progress { height:5px; border-radius:10px; background:#e0e0e0; margin-top:10px; }
+.progress-bar { background: var(--primary); }
 
-.list-group-item.hover-bg:hover {
-    background-color: #f8f9fa;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
+/* Recent Activity */
+.recent-activity { margin-top:40px; }
+.recent-activity .list-group-item { border:none; border-bottom:1px solid #eee; padding:12px 16px; }
+.recent-activity .list-group-item:hover { background:#fafafa; }
 
+/* Responsive */
+@media(max-width:768px){ main{margin-left:0 !important; padding-top:80px;} .sidebar{display:none;} .topbar{padding-left:20px !important;} }
 
-@media (max-width: 768px) {
-    .topbar {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    .welcome-message {
-        margin-top: 5px;
-    }
-}
 </style>
 </head>
 <body>
 
 <!-- Sidebar -->
 <div class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-        <h4><i class="bi bi-people-fill"></i> StudyCollabo</h4>
-    </div>
-    <nav class="nav flex-column">
-        <a href="dashboard.php" class="nav-link active"><i class="bi bi-speedometer2 me-2"></i><span>Dashboard</span></a>
-        <a href="tasks.php" class="nav-link"><i class="bi bi-list-task me-2"></i><span>My Tasks</span></a>
-        <a href="group_tasks.php" class="nav-link"><i class="bi bi-people me-2"></i><span>Group Tasks</span></a>
-        <a href="student_groups.php" class="nav-link"><i class="bi bi-people-fill me-2"></i><span>Student Groups</span></a>
-        <a href="discussions.php" class="nav-link"><i class="bi bi-chat-left-text me-2"></i><span>Discussions</span></a>
-        <a href="resources.php" class="nav-link"><i class="bi bi-journal me-2"></i><span>Resources</span></a>
-        <div class="nav-item dropdown mt-2">
-            <a class="nav-link dropdown-toggle" href="#" id="profileDropdown" role="button" data-bs-toggle="dropdown">
-                <div class="d-flex align-items-center">
-                    <div class="bg-light text-dark rounded-circle text-center me-2" style="width:30px; height:30px; line-height:30px;">
-                        <?php echo strtoupper(substr($user_name,0,1) . substr(explode(" ", $user_name)[1] ?? "",0,1)); ?>
-                    </div>
-                    <span>Profile</span>
-                </div>
-            </a>
-            <ul class="dropdown-menu" aria-labelledby="profileDropdown">
-                <li><a class="dropdown-item" href="settings.php">Settings</a></li>
-                <li><a class="dropdown-item text-danger" href="../auth/logout.php">Logout</a></li>
-            </ul>
-        </div>
-    </nav>
+    <div class="logo"><i class="bi bi-journal-text"></i> <span>StudyCollabo</span></div>
+    <ul>
+        <li><a href="#" class="active"><i class="bi bi-grid"></i> <span>Dashboard</span></a></li>
+        <li><a href="tasks.php"><i class="bi bi-person-check"></i> <span>My Tasks</span></a></li>
+        <li><a href="group_tasks.php"><i class="bi bi-people"></i> <span>Group Tasks</span></a></li>
+        <li><a href="calendar.php"><i class="bi bi-calendar3"></i> <span>Calendar</span></a></li>
+        <li><a href="discussions.php"><i class="bi bi-chat-dots"></i> <span>Discussions</span></a></li>
+    </ul>
 </div>
 
-<!-- Main Content -->
-<div class="main-content" id="main-content">
-    <!-- Topbar -->
-<div class="topbar d-flex align-items-center justify-content-between flex-wrap px-3 py-2 bg-white shadow-sm rounded-3 mb-4">
-    <!-- Left: Sidebar Toggle -->
-    <div class="d-flex align-items-center gap-3 mb-2 mb-md-0">
-        <button class="btn btn-light border-0 d-flex align-items-center justify-content-center p-2 rounded-circle" id="toggleSidebar">
-            <i class="bi bi-list fs-4 text-dark"></i>
-        </button>
-    </div>
+<!-- Main -->
+<main id="main">
+    <div class="topbar" id="topbar">
+        <div class="top-left">
+            <button class="btn btn-light" id="toggleSidebar"><i class="bi bi-list"></i></button>
+            <img src="assets/img/SClogo.png" alt="StudyCollabo Logo" style="height:32px; width:auto;">
+        </div>
 
-    <!-- Center: Search Bar -->
-    <form class="flex-grow-1 mx-3 position-relative" style="max-width: 400px;">
-        <i class="bi bi-search position-absolute top-50 start-3 translate-middle-y text-muted eight-50 right-3"></i>
-        <input type="text" class="form-control p-3 ps-5 w-100 rounded-pill shadow-sm" placeholder="Search tasks, groups, resources...">
-    </form>
+        <div class="search-box mx-auto">
+            <i class="bi bi-search"></i>
+            <input type="text" placeholder="Search tasks, groups..." id="searchBox">
+            <ul id="searchResults" class="list-unstyled" style="position:absolute; top:110%; left:0; width:100%; background:#fff; border:1px solid #ddd; border-radius:8px; display:none; z-index:10;"></ul>
+        </div>
 
-    <!-- Right: Create Dropdown -->
-    <div class="d-flex align-items-center gap-2">
-        <div class="dropdown">
-            <button class="btn btn-primary dropdown-toggle rounded-pill px-4 py-2" type="button" data-bs-toggle="dropdown" style="background: linear-gradient(135deg, #6a11cb, #2575fc); color: #fff;">
-                + Create
+        <div class="d-flex align-items-center gap-2">
+            <div class="dropdown">
+                <button class="btn btn-primary rounded-pill px-3" data-bs-toggle="dropdown" style="background-color:#1a73e8;">
+                    + Create
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="tasks.php">New Task</a></li>
+                    <li><a class="dropdown-item" href="group_tasks.php">New Group Task</a></li>
+                </ul>
+            </div>
+
+            <button class="profile-btn" id="profileBtn">
+                <?php if($profile_photo): ?>
+                    <img src="<?= htmlspecialchars($profile_photo) ?>" alt="Avatar">
+                <?php else: ?>
+                    <?= strtoupper(substr($first_name,0,1)) ?>
+                <?php endif; ?>
             </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                <li><a class="dropdown-item" href="tasks.php"><i class="bi bi-list-task me-2"></i>New Task</a></li>
-                <li><a class="dropdown-item" href="group_tasks.php"><i class="bi bi-people me-2"></i>New Group Task</a></li>
-            </ul>
+
+            <div class="profile-menu" id="profileMenu">
+                <div class="profile-header">
+                    <?php if($profile_photo): ?>
+                        <img src="<?= htmlspecialchars($profile_photo) ?>" alt="Avatar">
+                    <?php else: ?>
+                        <div style="width:60px;height:60px;border-radius:50%;background:#1a73e8;color:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:600;margin:0 auto 10px;"><?= strtoupper(substr($first_name,0,1)) ?></div>
+                    <?php endif; ?>
+                    <h6>Hey, <?= htmlspecialchars($first_name) ?></h6>
+                    <small><?= htmlspecialchars($user_email) ?></small>
+                </div>
+                <a href="settings.php"><i class="bi bi-gear me-2"></i>Settings</a>
+                <a href="../auth/logout.php" class="text-danger"><i class="bi bi-box-arrow-right me-2"></i>Logout</a>
+            </div>
         </div>
     </div>
-</div>
-
-
-   <!-- <h2 class="fw-normal form-floating mb-4">Welcome back, 
-    <?php echo htmlspecialchars(explode(' ', trim($user_name))[0]); ?>
-    </h2> -->
 
     <!-- Dashboard Cards -->
-<div class="dashboard-cards d-flex flex-wrap gap-4">
-    <div class="card-stat text-center p-4 flex-fill" style="background: linear-gradient(135deg, #ff7e5f, #feb47b); color: #fff;">
-        <div class="icon-stl bg-white text-primary mb-3" style="width:60px; height:60px;">
-            <i class="bi bi-person-check-fill icon-spl text-black"></i>
+    <div class="dashboard-cards">
+        <div class="card-stat">
+            <i class="bi bi-person-check-fill fs-3 text-primary"></i>
+            <h3><?= $total_tasks ?></h3>
+            <p>My Tasks</p>
+            <div class="progress"><div class="progress-bar" style="width: <?= $progress ?>%;"></div></div>
         </div>
-        <h3 class="fw-bold mb-1"><?php echo $personal_tasks; ?></h3>
-        <p class="mb-0 fw-semibold">My Tasks</p>
-    </div>
 
-    <div class="card-stat text-center p-4 flex-fill" style="background: linear-gradient(135deg, #6a11cb, #2575fc); color: #fff;">
-        <div class="icon-stl bg-white text-primary mb-3" style="width:60px; height:60px;">
-            <i class="bi bi-people-fill fs-3 text-black font-bold"></i>
+        <div class="card-stat">
+            <i class="bi bi-people-fill fs-3 text-success"></i>
+            <h3><?= $group_tasks ?></h3>
+            <p>Group Tasks</p>
         </div>
-        <h3 class="fw-bold mb-1"><?php echo $group_tasks; ?></h3>
-        <p class="mb-0 fw-semibold">Group Tasks</p>
+
+        <div class="card-stat">
+            <i class="bi bi-graph-up fs-3 text-info"></i>
+            <h3><?= $progress ?>%</h3>
+            <p>Progress</p>
+        </div>
     </div>
 
-    <div class="card-stat text-center flex-fill" style="background: linear-gradient(135deg, #6a11cb, #007cbfff); color: #fff;">
-    <div class="icon-stl bg-white text-primary mb-3" style="width:60px; height:60px;">
-        <i class="bi bi-person-check-fill icon-spl text-black"></i>
-    </div>
-    <h3><?php echo $personal_tasks; ?></h3>
-    <p>My Tasks</p>
-    <div class="progress">
-        <div class="progress-bar" style="width: 65%;"></div>
-    </div>
-    <a href="tasks.php" class="stretched-link mt-2 d-block">View all tasks <i class="bi bi-arrow-right ms-1"></i></a>
-</div>
-
-    
-</div>
-
-                <!-- Recent Activity -->
-<div class="recent-activity mt-5">
-    <h5 class="mb-3 text-primary fw-bold">Recent Activity</h5>
-    <div class="card shadow-sm rounded-4">
-        <div class="list-group list-group-flush">
-            <?php if ($recent_activity->num_rows > 0): ?>
-                <?php while($activity = $recent_activity->fetch_assoc()): ?>
-                    <div class="list-group-item d-flex justify-content-between align-items-center px-4 py-3 hover-bg">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="activity-icon bg-info text-white rounded-circle d-flex align-items-center justify-content-center">
-                                <i class="bi bi-bell-fill"></i>
-                            </div>
-                            <span class="fw-semibold text-dark"><?php echo htmlspecialchars($activity['title']); ?></span>
+    <!-- Recent Activity -->
+    <div class="recent-activity mt-4">
+        <h6 class="fw-semibold mb-3">Recent Activity</h6>
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="list-group list-group-flush">
+                <?php if($recent_activity->num_rows>0): ?>
+                    <?php while($a=$recent_activity->fetch_assoc()): ?>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span><?= htmlspecialchars($a['title']) ?></span>
+                            <small class="text-muted"><?= date("M d, Y", strtotime($a['created_at'])) ?></small>
                         </div>
-                        <small class="text-muted"><?php echo date("M d, Y", strtotime($activity['created_at'])); ?></small>
-                    </div>
-                <?php endwhile; ?>
-            <?php else: ?>
-                <div class="list-group-item text-center text-muted py-4">No recent activity</div>
-            <?php endif; ?>
+                    <?php endwhile; ?>
+                <?php else: ?>
+                    <div class="list-group-item text-center text-muted py-3">No recent activity</div>
+                <?php endif; ?>
+            </div>
         </div>
     </div>
-</div>
+</main>
 
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-const toggleSidebar = document.getElementById('toggleSidebar');
+// Sidebar toggle
 const sidebar = document.getElementById('sidebar');
-const mainContent = document.getElementById('main-content');
+const toggleSidebar = document.getElementById('toggleSidebar');
+const profileBtn = document.getElementById('profileBtn');
+const profileMenu = document.getElementById('profileMenu');
 
-toggleSidebar.addEventListener('click', () => {
-    sidebar.classList.toggle('collapsed');
-    mainContent.classList.toggle('collapsed');
+toggleSidebar.addEventListener('click',()=>{sidebar.classList.toggle('collapsed'); document.getElementById('main').classList.toggle('collapsed'); document.getElementById('topbar').classList.toggle('collapsed'); });
+
+// Profile dropdown
+profileBtn.addEventListener('click', e=>{ e.stopPropagation(); profileMenu.classList.toggle('active'); });
+document.addEventListener('click', e=>{ if(!profileMenu.contains(e.target)) profileMenu.classList.remove('active'); });
+
+// AJAX search
+const searchBox = document.getElementById('searchBox');
+const searchResults = document.getElementById('searchResults');
+searchBox.addEventListener('input',()=>{
+    const query = searchBox.value.trim();
+    if(query.length<2) return searchResults.style.display='none';
+    fetch('search_suggestions.php?q='+encodeURIComponent(query))
+        .then(res=>res.json())
+        .then(data=>{
+            searchResults.innerHTML='';
+            if(data.length>0){
+                data.forEach(item=>{
+                    const li=document.createElement('li');
+                    li.textContent=item.title;
+                    li.style.padding='8px 12px'; li.style.cursor='pointer';
+                    li.onclick=()=>window.location.href='task_view.php?id='+item.id;
+                    searchResults.appendChild(li);
+                });
+                searchResults.style.display='block';
+            } else {
+                searchResults.innerHTML='<li class="text-muted">No results found</li>';
+                searchResults.style.display='block';
+            }
+        });
 });
 </script>
 </body>

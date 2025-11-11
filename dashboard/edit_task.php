@@ -62,6 +62,7 @@ if (isset($_GET['id'])) {
 <style>
     body {
         overflow-x: hidden;
+        font-family:'Google Sans',sans-serif; margin:0; background:var(--bg); color:var(--text); overflow-x:hidden;
     }
 
     /* Sidebar */
