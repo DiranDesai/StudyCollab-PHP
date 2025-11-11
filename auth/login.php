@@ -7,11 +7,6 @@ if (isset($_SESSION['user_id']) && !empty($_SESSION['user_id'])) {
     exit();
 }
 
-ini_set('session.cookie_httponly', 1);
-ini_set('session.use_strict_mode', 1);
-ini_set('session.cookie_secure', isset($_SERVER['HTTPS']));
-
-session_start();
 require '../includes/db.php';
 
 $error = "";

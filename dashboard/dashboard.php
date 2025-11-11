@@ -52,6 +52,12 @@ body { font-family:'Google Sans',sans-serif; margin:0; background:var(--bg); col
 .sidebar ul li a:hover, .sidebar ul li a.active { background:#e8f0fe; color:var(--primary); }
 .sidebar.collapsed ul li a span { display:none; }
 
+
+.logo1{
+    transform: scale(3.4);
+    margin-left: 40px;
+}
+
 /* Topbar */
 .topbar {
     display: flex;
@@ -130,7 +136,7 @@ main.collapsed { margin-left:80px; }
     <div class="topbar" id="topbar">
         <div class="top-left">
             <button class="btn btn-light" id="toggleSidebar"><i class="bi bi-list"></i></button>
-            <img src="assets/img/SClogo.png" alt="StudyCollabo Logo" style="height:32px; width:auto;">
+            <img src="../assets/img/SClogo.png" alt="StudyCollabo Logo" style="height:32px; width:auto;" class="logo1">
         </div>
 
         <div class="search-box mx-auto">

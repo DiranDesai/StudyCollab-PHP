@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.1
+-- version 5.1.1
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Nov 11, 2025 at 12:41 PM
--- Server version: 10.4.32-MariaDB
--- PHP Version: 8.0.30
+-- Generation Time: Nov 11, 2025 at 01:29 PM
+-- Server version: 10.4.22-MariaDB
+-- PHP Version: 8.1.2
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -37,7 +37,7 @@ CREATE TABLE `calendar_events` (
   `due_date` date NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Dumping data for table `calendar_events`
@@ -60,7 +60,7 @@ CREATE TABLE `discussion_replies` (
   `user_id` int(11) NOT NULL,
   `message` text NOT NULL,
   `sent_at` datetime DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Dumping data for table `discussion_replies`
@@ -80,7 +80,7 @@ CREATE TABLE `groups` (
   `group_name` varchar(255) NOT NULL,
   `leader_id` int(11) NOT NULL,
   `created_at` datetime DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Dumping data for table `groups`
@@ -105,7 +105,7 @@ CREATE TABLE `group_comments` (
   `user_id` int(11) NOT NULL,
   `comment` text NOT NULL,
   `created_at` datetime DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
 
@@ -121,7 +121,7 @@ CREATE TABLE `group_discussions` (
   `content` text NOT NULL,
   `message` text NOT NULL,
   `sent_at` datetime DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Dumping data for table `group_discussions`
@@ -143,7 +143,7 @@ CREATE TABLE `group_discussions_messages` (
   `user_id` int(11) NOT NULL,
   `message` text NOT NULL,
   `sent_at` datetime NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
 
@@ -159,7 +159,7 @@ CREATE TABLE `group_members` (
   `user_id` int(11) NOT NULL,
   `role` enum('Leader','Member') DEFAULT 'Member',
   `added_at` datetime DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Dumping data for table `group_members`
@@ -183,7 +183,7 @@ CREATE TABLE `group_resources` (
   `file_name` varchar(255) NOT NULL,
   `file_path` varchar(255) NOT NULL,
   `uploaded_at` datetime DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
 
@@ -202,7 +202,7 @@ CREATE TABLE `group_tasks` (
   `status` enum('Pending','Completed') DEFAULT 'Pending',
   `created_at` datetime DEFAULT current_timestamp(),
   `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Dumping data for table `group_tasks`
@@ -223,12 +223,13 @@ INSERT INTO `group_tasks` (`id`, `group_name`, `leader_id`, `group_id`, `title`,
 CREATE TABLE `notes` (
   `id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
+  `course` varchar(255) NOT NULL,
   `group_id` int(11) DEFAULT NULL,
   `title` varchar(255) NOT NULL,
   `content` longtext DEFAULT NULL,
   `shared` tinyint(1) DEFAULT 0,
   `created_at` datetime DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
 
@@ -239,12 +240,13 @@ CREATE TABLE `notes` (
 CREATE TABLE `resources` (
   `id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
+  `course` varchar(255) NOT NULL,
   `group_id` int(11) DEFAULT NULL,
   `title` varchar(255) NOT NULL,
   `description` text DEFAULT NULL,
   `file_path` varchar(255) NOT NULL,
   `uploaded_at` datetime DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
 
@@ -261,7 +263,7 @@ CREATE TABLE `tasks` (
   `status` enum('Pending','Completed') DEFAULT 'Pending',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Dumping data for table `tasks`
@@ -273,7 +275,8 @@ INSERT INTO `tasks` (`id`, `user_id`, `title`, `description`, `due_date`, `statu
 (10, 3, 'Database Technology', 'We are focusing on the Entity Relationship Diagram (ERD) and Cardinality.', '2025-11-04', 'Completed', '2025-11-07 11:00:08', '2025-11-08 05:45:11'),
 (11, 3, 'Architecture II', 'Adders and latches. Add diagrams.', '2025-11-16', 'Pending', '2025-11-08 05:46:51', '2025-11-08 05:47:01'),
 (12, 5, 'Management Information System', 'Discussing the Packaged Enterprise Application Software (PEAS).', '2025-12-23', 'Pending', '2025-11-10 15:19:05', '2025-11-10 19:38:59'),
-(13, 5, 'Programming', 'Data Structures', '2025-11-16', 'Completed', '2025-11-10 20:03:06', '2025-11-10 20:03:13');
+(13, 5, 'Programming', 'Data Structures', '2025-11-16', 'Completed', '2025-11-10 20:03:06', '2025-11-10 20:03:13'),
+(14, 6, 'coding123', 'i loe', '2025-11-21', 'Pending', '2025-11-11 12:15:05', '2025-11-11 12:15:37');
 
 -- --------------------------------------------------------
 
@@ -295,7 +298,7 @@ CREATE TABLE `users` (
   `reset_expires` datetime DEFAULT NULL,
   `remember_token` varchar(255) DEFAULT NULL,
   `remember_expiry` datetime DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
 -- Dumping data for table `users`
@@ -306,7 +309,8 @@ INSERT INTO `users` (`id`, `fullname`, `email`, `password`, `user_type`, `course
 (2, 'John Doe', 'john.doe@example.com', '482c811da5d5b4bc6d497ffa98491e38', 'student', 'Information Technology', '2025-11-05 17:02:48', '2025-11-05 17:02:48', 'default-avatar.png', NULL, NULL, NULL, NULL),
 (3, 'Fewdays Chibwe', 'fewdays8chibwe@gmail.com', '$2y$10$4uvwUjjRBUBJZ.Lt8o5Ms.t0zHNWL2jXyqgr8tML.BoW4/BMI/LYe', 'student', 'Information Technology', '2025-11-05 18:11:37', '2025-11-10 13:21:09', 'user_3_1762519918.jpg', 'a74d9a17345c688375747383f1b6473d495850c1a7f9d204b54ed1e7fd58077a', '2025-11-10 15:51:09', NULL, NULL),
 (4, 'SUWILANJI MFUNGO', 'bethelrealtorslimited@gmail.com', '$2y$10$hPx3NoHDy4EyknYFYHQa2.oQEviwygey2Rd8TiwVT8T08xL47VNzG', 'student', NULL, '2025-11-09 04:42:18', '2025-11-09 04:42:18', 'default-avatar.png', NULL, NULL, NULL, NULL),
-(5, 'Nelly Tembo', 'nellytembo@gmail.com', '$2y$10$CEpWSw.rpXjVKPZnaLTQtewIh6yfX4cZWP/Klvt.9BeTpR66WCYgq', 'student', NULL, '2025-11-09 05:00:15', '2025-11-09 05:19:14', 'default-avatar.png', NULL, NULL, '7b31ec56aa6b67a7c26350cdcf248b34', '2025-12-09 06:19:14');
+(5, 'Nelly Tembo', 'nellytembo@gmail.com', '$2y$10$CEpWSw.rpXjVKPZnaLTQtewIh6yfX4cZWP/Klvt.9BeTpR66WCYgq', 'student', NULL, '2025-11-09 05:00:15', '2025-11-09 05:19:14', 'default-avatar.png', NULL, NULL, '7b31ec56aa6b67a7c26350cdcf248b34', '2025-12-09 06:19:14'),
+(6, 'Diran Sai', 'dirantechie@gmail.com', '$2y$10$av12wNgsuOiQfL1FJcDizeEAOgnBcKlCz./b.bGZXcKS5YWM.4cTa', 'student', NULL, '2025-11-11 12:03:06', '2025-11-11 12:03:06', 'default-avatar.png', NULL, NULL, NULL, NULL);
 
 --
 -- Indexes for dumped tables
@@ -485,13 +489,13 @@ ALTER TABLE `resources`
 -- AUTO_INCREMENT for table `tasks`
 --
 ALTER TABLE `tasks`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- Constraints for dumped tables

@@ -105,7 +105,7 @@ main.collapsed { margin-left:80px; }
     <div class="topbar" id="topbar">
         <div class="top-left">
             <button class="btn btn-light" id="toggleSidebar"><i class="bi bi-list"></i></button>
-            <img src="assets/img/SClogo.png" alt="StudyCollabo Logo" style="height:32px; width:auto;">
+            <img src="../assets/img/SClogo.png" alt="StudyCollabo Logo" style="height:32px; width:auto;">
         </div>
 
         <div class="d-flex align-items-center gap-2">
