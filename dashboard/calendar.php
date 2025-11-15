@@ -103,34 +103,10 @@ main.collapsed { margin-left:80px; }
 </head>
 <body>
 
-<div class="sidebar" id="sidebar">
-    <div class="logo"><i class="bi bi-journal-text"></i> <span>StudyCollabo</span></div>
-    <ul>
-        <li><a href="dashboard.php"><i class="bi bi-grid"></i> Dashboard</a></li>
-        <li><a href="tasks.php"><i class="bi bi-person-check"></i> My Tasks</a></li>
-        <li><a href="group_tasks.php"><i class="bi bi-people"></i> Group Tasks</a></li>
-        <li><a href="calendar.php" class="active"><i class="bi bi-calendar3"></i> Calendar</a></li>
-        <li><a href="discussions.php"><i class="bi bi-chat-dots"></i> Discussions</a></li>
-    </ul>
-</div>
+ <?php include '../includes/sidebar.php' ?>
 
 <main id="main">
-    <div class="topbar" id="topbar">
-        <div class="top-left">
-            <button class="btn btn-light" id="toggleSidebar"><i class="bi bi-list"></i></button>
-            <img src="assets/img/SClogo.png" alt="StudyCollabo Logo">
-        </div>
-        <div class="d-flex align-items-center gap-2 position-relative">
-            <button class="profile-btn" id="profileBtn">
-                <?php if($profile_photo): ?><img src="<?= htmlspecialchars($profile_photo) ?>" alt="Avatar"><?php else: ?><?= strtoupper(substr($first_name,0,1)) ?><?php endif; ?>
-            </button>
-            <div class="profile-menu" id="profileMenu">
-                <a href="settings.php"><i class="bi bi-gear me-2"></i>Settings</a>
-                <a href="../auth/logout.php" class="text-danger"><i class="bi bi-box-arrow-right me-2"></i>Logout</a>
-            </div>
-        </div>
-    </div>
-
+     <?php include '../includes/navbar.php' ?>
     <div class="month-nav">
         <a href="?month=<?= $prevMonth ?>&year=<?= $prevYear ?>" class="btn btn-outline-primary">&lt; Prev</a>
         <h3><?= $monthName ?> <?= $year ?></h3>

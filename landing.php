@@ -78,7 +78,7 @@ footer {
 <section class="hero" style="position: relative; overflow: hidden;">
     <!-- Background Banner -->
     <div style="
-        background: url('assets/img/student-banner,jpg') center center/cover no-repeat;
+        background: url('assets/img/student-banner.jpg') center center/cover no-repeat;
         position: absolute;
         top: 0; left: 0; width: 100%; height: 100%;
         z-index: 0;
@@ -90,7 +90,7 @@ footer {
         <p data-aos="fade-up" data-aos-delay="200">
             Your all-in-one platform for student project and assignment collaboration.
         </p>
-        <a href="login.php" class="btn btn-primary btn-lg" data-aos="fade-up" data-aos-delay="400">Get Started</a>
+        <a href="auth/register.php" class="btn btn-primary btn-lg" data-aos="fade-up" data-aos-delay="400">Get Started</a>
     </div>
 </section>
 
@@ -208,7 +208,7 @@ footer {
 <footer>
     <div class="container text-center">
         <p>&copy; 2025 StudyCollabo. All Rights Reserved.</p>
-        <p><a href="login.php" class="text-white">Login</a> | <a href="register.php" class="text-white">Sign Up</a></p>
+        <p><a href="auth/login.php" class="text-white">Login</a> | <a href="auth/register.php" class="text-white">Sign Up</a></p>
     </div>
 </footer>
 

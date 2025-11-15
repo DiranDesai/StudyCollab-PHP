@@ -17,8 +17,8 @@ function respond($ok,$msg){ echo json_encode(['success'=>$ok,'message'=>$msg]); 
 switch($action){
 
     // CREATE GROUP + TASK
-    case 'create':
-        $group_name = trim($_POST['group_name']);
+    case 'add':
+        $group_name = 'group6';
         $title = trim($_POST['title']);
         $desc = trim($_POST['description']);
         $due = $_POST['due_date'];

@@ -140,8 +140,11 @@ $completedTasks = $conn->query("SELECT * FROM tasks WHERE user_id={$user_id} AND
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <style>
-:root { --primary:#1a73e8; --surface:#fff; --bg:#f8f9fa; --text:#202124; --muted:#5f6368; }
-body { font-family:'Google Sans',sans-serif; margin:0; background:var(--bg); color:var(--text); overflow-x:hidden; }
+:root { --primary:#1a73e8; --surface:#fff;  --bg:#f5f5f7; --text:#202124; --muted:#5f6368; }
+body { 
+    font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+    background:var(--surface);
+overflow-x:hidden; }
 
 /* Sidebar */
 .sidebar { width:250px; height:100vh; background:var(--surface); border-right:1px solid #ddd; position:fixed; top:0; left:0; transition: width 0.3s; overflow:hidden; }
@@ -172,6 +175,16 @@ body { font-family:'Google Sans',sans-serif; margin:0; background:var(--bg); col
 .profile-menu a { display:block; padding:10px 16px; text-decoration:none; color:#333; }
 .profile-menu a:hover { background:#f5f5f5; }
 
+/* Card */
+.card-apple {
+    background:var(--card);
+    padding:22px;
+    border-radius:var(--radius);
+    border:1px solid #e5e5e7;
+    box-shadow:0 4px 20px rgba(0,0,0,0.04);
+    transition:all 0.25s ease;
+}
+
 /* Main */
 main { margin-left:250px; padding:90px 30px 40px; transition: margin-left 0.3s; }
 main.collapsed { margin-left:80px; }
@@ -195,6 +208,18 @@ main.collapsed { margin-left:80px; }
     transition: transform 0.2s, box-shadow 0.2s;
 }
 
+/* Optional: smooth input focus effect */
+.task-card .form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+/* Make placeholder bold */
+.form-control::placeholder {
+    font-weight: 600;
+    color: #6c757d; /* slightly muted */
+}
+
 .task-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
@@ -214,7 +239,7 @@ main.collapsed { margin-left:80px; }
 
 .text-decoration-line-through { text-decoration: line-through; color:#555; }
 
-.task-section-title { font-size:1.25rem; font-weight:600; color:var(--primary); margin-bottom:15px; }
+.task-section-title { font-size:1rem; font-weight:600; color:var(--primary); margin-bottom:15px; }
 
 /* Responsive */
 @media(max-width:768px){
@@ -226,80 +251,50 @@ main.collapsed { margin-left:80px; }
 </head>
 <body>
 
-<!-- Sidebar -->
-<div class="sidebar" id="sidebar">
-    <div class="logo"><i class="bi bi-journal-text"></i> <span>StudyCollabo</span></div>
-    <ul>
-        <li><a href="dashboard.php"><i class="bi bi-grid"></i> <span>Dashboard</span></a></li>
-        <li><a href="tasks.php" class="active"><i class="bi bi-person-check"></i> <span>My Tasks</span></a></li>
-        <li><a href="group_tasks.php"><i class="bi bi-people"></i> <span>Group Tasks</span></a></li>
-        <li><a href="calendar.php"><i class="bi bi-calendar3"></i> <span>Calendar</span></a></li>
-        <li><a href="discussions.php"><i class="bi bi-chat-dots"></i> <span>Discussions</span></a></li>
-    </ul>
-</div>
+<?php include '../includes/sidebar.php' ?>
 
 <!-- Main -->
 <main id="main">
-    <div class="topbar" id="topbar">
-        <div class="top-left">
-            <button class="btn btn-light" id="toggleSidebar"><i class="bi bi-list"></i></button>
-            <img src="assets/img/SClogo.png" alt="StudyCollabo Logo" style="height:32px; width:auto;">
-        </div>
-
-        <div class="search-box mx-auto">
-            <i class="bi bi-search"></i>
-            <input type="text" placeholder="Search tasks..." id="searchBox">
-            <ul id="searchResults" class="list-unstyled" style="position:absolute; top:110%; left:0; width:100%; background:#fff; border:1px solid #ddd; border-radius:8px; display:none; z-index:10;"></ul>
-        </div>
-
-        <button class="profile-btn" id="profileBtn">
-            <?php if($profile_photo): ?>
-                <img src="<?= htmlspecialchars($profile_photo) ?>" alt="Avatar">
-            <?php else: ?>
-                <?= strtoupper(substr($first_name,0,1)) ?>
-            <?php endif; ?>
-        </button>
-
-        <div class="profile-menu" id="profileMenu">
-            <div class="profile-header">
-                <?php if($profile_photo): ?>
-                    <img src="<?= htmlspecialchars($profile_photo) ?>" alt="Avatar">
-                <?php else: ?>
-                    <div style="width:60px;height:60px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:600;margin:0 auto 10px;">
-                        <?= strtoupper(substr($first_name,0,1)) ?>
-                    </div>
-                <?php endif; ?>
-                <h6>Hey, <?= htmlspecialchars($first_name) ?></h6>
-                <small><?= htmlspecialchars($user_email) ?></small>
-            </div>
-            <a href="settings.php"><i class="bi bi-gear me-2"></i>Settings</a>
-            <a href="../auth/logout.php" class="text-danger"><i class="bi bi-box-arrow-right me-2"></i>Logout</a>
-        </div>
-    </div>
-
+   <?php include '../includes/navbar.php' ?>
+ 
     <!-- Add Task Form -->
-    <div class="task-section-title">Add New Task</div>
-    <div class="task-card">
-        <form id="addTaskForm">
-            <div class="mb-3">
-                <input type="text" name="title" class="form-control" placeholder="Task Title" required>
-            </div>
-            <div class="mb-3">
-                <textarea name="description" class="form-control" rows="2" placeholder="Description (optional)"></textarea>
-            </div>
-            <div class="mb-3">
-                <input type="date" name="due_date" class="form-control" required>
-            </div>
-            <button type="submit" class="btn btn-add w-100"><i class="bi bi-plus-circle me-1"></i> Add Task</button>
-        </form>
-    </div>
+    <!-- <div class="task-section-title">Add New Task</div> -->
+    <!-- Task Card -->
+<div class="card shadow-sm p-4 mt-10 task-card" style="max-width: 500px; margin:2rem auto;">
+    <h5 class="fw-semibold mb-3">Add Task</h5>
+    <form id="addTaskForm">
+        <!-- Task Title -->
+        <div class="mb-3 position-relative">
+            <i class="bi bi-pencil position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
+            <input type="text" name="title" class="form-control ps-5 fw-bold" placeholder="Task Title" required>
+        </div>
+
+        <!-- Description -->
+        <div class="mb-3 position-relative">
+            <i class="bi bi-card-text position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
+            <textarea name="description" class="form-control ps-5 fw-bold" rows="2" placeholder="Description (optional)"></textarea>
+        </div>
+
+        <!-- Due Date -->
+        <div class="mb-3 position-relative">
+            <i class="bi bi-calendar-date position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
+            <input type="date" name="due_date" class="form-control ps-5 fw-bold" required>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="font-bold btn btn-primary w-100 d-flex align-items-center justify-content-center">
+            <i class="bi bi-plus-circle me-2"></i><span class="font-semibold">Add Task</span>
+        </button>
+    </form>
+</div>
+
 
     <!-- Pending Tasks -->
     <div class="task-section-title mt-4">Pending Tasks</div>
     <div class="task-cards" id="pendingTasksContainer">
         <?php if($pendingTasks && $pendingTasks->num_rows > 0): ?>
             <?php while($row = $pendingTasks->fetch_assoc()): ?>
-            <div class="task-card" id="task-wrapper-<?= $row['id'] ?>">
+            <div class="card-apple rounded-4" id="task-wrapper-<?= $row['id'] ?>">
                 <div class="task-title"><?= htmlspecialchars($row['title']) ?></div>
                 <div class="task-desc"><?= htmlspecialchars($row['description']) ?></div>
                 <div class="task-meta">Due: <?= $row['due_date'] ?> | <span class="text-warning fw-semibold">Pending</span></div>

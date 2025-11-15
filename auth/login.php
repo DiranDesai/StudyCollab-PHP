@@ -214,7 +214,7 @@ body {
             <p class="hero-description">
                 Collaborate smarter, track tasks, and manage personal and group projects efficiently.
             </p>
-            <a href="landing.php" class="btn btn-discover">Learn More</a>
+            <a href="../landing.php" class="btn btn-discover">Learn More</a>
         </div>
     </div>
 
