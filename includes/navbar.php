@@ -24,7 +24,7 @@ $first_name = explode(' ', trim($user_name))[0];
     align-items: center;
     gap: 8px;
     height: 64px;
-    background: var(--surface);
+    background: white;
     padding: 0 20px;
     border-bottom: 1px solid #ddd;
     position: fixed;

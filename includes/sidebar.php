@@ -13,6 +13,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
   position: fixed;
   top: 0;
   left: 0;
+  z-index: 2;
   transition: width 0.3s;
   overflow: hidden;
 }
