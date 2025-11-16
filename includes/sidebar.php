@@ -8,7 +8,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 .sidebar {
   width: 250px;
   height: 100vh;
-  background: var(--surface);
+  background: white;
   border-right: 1px solid #ddd;
   position: fixed;
   top: 0;
