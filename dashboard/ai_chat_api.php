@@ -22,7 +22,7 @@ if($action === 'history'){
     exit;
 }
 
-// Otherwise handle new AI message
+// Handle new AI message
 $message = trim($data['message'] ?? '');
 $course = trim($data['course'] ?? null);
 
@@ -48,7 +48,7 @@ if($course){
     }
 }
 
-// --- Call AI API ---
+// --- Build prompt ---
 $prompt = "You are a helpful student AI assistant.\n";
 $prompt .= "User Question: $message\n";
 if($course){
@@ -56,27 +56,36 @@ if($course){
 }
 $prompt .= "Provide a clear, detailed answer, and study tips if relevant.";
 
-// Example: Using OpenAI GPT API (replace YOUR_API_KEY)
-$ch = curl_init("https://api.openai.com/v1/chat/completions");
+// --- Gemini API call ---
+$apiKey = 'AIzaSyAkEGpIEC4d3AqNtqZK-WFeP3r2Xs2mEnE';
+$geminiUrl = 'https://gemini.googleapis.com/v1/experiments:generateMessage'; // example endpoint
+
+$payload = [
+    'model' => 'gemini-1.5', // choose Gemini model
+    'input' => [
+        'text' => $prompt
+    ],
+    'temperature' => 0.7
+];
+
+$ch = curl_init($geminiUrl);
 curl_setopt($ch, CURLOPT_HTTPHEADER, [
     'Content-Type: application/json',
-    'Authorization: Bearer YOUR_API_KEY'
+    "Authorization: Bearer $apiKey"
 ]);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_POST, true);
-curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
-    'model'=>'gpt-4',
-    'messages'=>[['role'=>'user','content'=>$prompt]],
-    'temperature'=>0.7
-]));
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+
 $response = curl_exec($ch);
 curl_close($ch);
-$result = json_decode($response,true);
-$ai_answer = $result['choices'][0]['message']['content'] ?? 'AI could not respond';
+$result = json_decode($response, true);
+
+$ai_answer = $result['candidates'][0]['content'][0]['text'] ?? 'AI could not respond';
 
 // --- Save chat history ---
 $stmt = $conn->prepare("INSERT INTO ai_chat_history(user_id, role, message, course) VALUES (?,?,?,?)");
-$stmt->bind_param("isss",$user_id,$role,$msg,$course_val);
+$stmt->bind_param("isss", $user_id, $role, $msg, $course_val);
 
 // Save user message
 $role = 'user'; $msg = $message; $course_val = $course; $stmt->execute();
