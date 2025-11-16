@@ -58,6 +58,9 @@ main{margin-left:250px;padding:90px 28px 40px;transition:margin-left .3s}
 #quillEditor { height:260px; }
 .modal-lg { max-width:900px; }
 .search-row .form-control, .search-row .form-select { min-height:44px; }
+.shadow-1{
+    box-shadow: rgba(0, 0, 0, 0.1) 0px 10px 15px -3px, rgba(0, 0, 0, 0.05) 0px 4px 6px -2px;
+}
 </style>
 </head>
 <body>
@@ -104,7 +107,7 @@ main{margin-left:250px;padding:90px 28px 40px;transition:margin-left .3s}
         <?php else: ?>
             <?php foreach ($notes as $n): ?>
                 <div class="col-md-4">
-                    <div class="note-card" data-course="<?= htmlspecialchars($n['course']) ?>" data-id="<?= intval($n['id']) ?>">
+                    <div class="note-card shadow-1" data-course="<?= htmlspecialchars($n['course']) ?>" data-id="<?= intval($n['id']) ?>">
                         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
                             <div style="font-weight:600;font-size:1.02rem;"><?= htmlspecialchars($n['title']) ?: 'Untitled' ?></div>
                             <small class="text-muted"><?= date("M d, Y", strtotime($n['created_at'])) ?></small>

@@ -216,30 +216,37 @@ main {
             $badgeClass = "status-" . $status;
         ?>
 
-        <div class="activity-item">
-            <div class="activity-left">
+      <div class="activity-item">
+        <div class="activity-left">
 
-                <!-- Status Icon -->
-                <i class="bi bi-dot status-icon <?= $iconClass ?>"></i>
+            <!-- Status Icon -->
+            <i class="bi bi-dot status-icon <?= $iconClass ?>"></i>
 
-                <!-- Avatar -->
-                <img src="<?= $a['image'] ?: '../assets/default.jpg' ?>" class="avatar">
+            <!-- Avatar -->
+            <?php if (!empty($a['image'])): ?>
+                <img src="../assets/<?= htmlspecialchars($a['image']) ?>" class="avatar">
+            <?php else: ?>
+                <div class="avatar placeholder-avatar">
+                    <?= strtoupper(substr($a['title'] ?: $a['author'], 0, 1)) ?>
+                </div>
+            <?php endif; ?>
 
-                <div>
-                    <div class="activity-title"><?= htmlspecialchars($a['title']) ?></div>
-                    <div class="activity-author">
-                        by <?= htmlspecialchars($a['author']) ?>
-                    </div>
-                    <div class="activity-date">
-                        <?= date("M d, Y • H:i", strtotime($a['created_at'])) ?>
-                    </div>
+            <div>
+                <div class="activity-title"><?= htmlspecialchars($a['title']) ?></div>
+                <div class="activity-author">
+                    by <?= htmlspecialchars($a['author']) ?>
+                </div>
+                <div class="activity-date">
+                    <?= date("M d, Y • H:i", strtotime($a['created_at'])) ?>
                 </div>
             </div>
-
-            <span class="status-badge <?= $badgeClass ?>">
-                <?= htmlspecialchars($a['status']) ?>
-            </span>
         </div>
+
+        <span class="status-badge <?= $badgeClass ?>">
+            <?= htmlspecialchars($a['status']) ?>
+        </span>
+        </div>
+
 
     <?php endwhile; ?>
 <?php else: ?>

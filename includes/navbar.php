@@ -58,9 +58,13 @@ $first_name = explode(' ', trim($user_name))[0];
 .profile-header small { color:#555; }
 .profile-menu a { display:block; padding:10px 16px; text-decoration:none; color:#333; }
 .profile-menu a:hover { background:#f5f5f5; }
+
+.shadow-1{
+    box-shadow: rgba(0, 0, 0, 0.1) 0px 10px 15px -3px, rgba(0, 0, 0, 0.05) 0px 4px 6px -2px;
+}
 </style>
 
-<div class="topbar shadow-n1" id="topbar">
+<div class="topbar shadow-1" id="topbar">
     <div class="top-left">
         <button class="btn btn-light" id="toggleSidebar"><i class="bi bi-list"></i></button>
         <img src="../assets/img/SClogo.png" alt="StudyCollabo Logo" style="height:32px; width:auto;" class="logo1">

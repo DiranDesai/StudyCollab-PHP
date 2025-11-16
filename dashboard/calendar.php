@@ -64,7 +64,10 @@ $nextYear  = $month == 12 ? $year + 1 : $year;
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <style>
 :root { --primary:#1a73e8; --surface:#fff; --bg:#f8f9fa; --text:#202124; --muted:#5f6368; }
-body { font-family:'Google Sans',sans-serif; margin:0; background:var(--bg); color:var(--text); overflow-x:hidden; }
+body {
+    font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+    background:var(--bg);
+}
 
 .sidebar { width:250px; height:100vh; background:var(--surface); border-right:1px solid #ddd; position:fixed; top:0; left:0; transition: width 0.3s; overflow:hidden; }
 .sidebar.collapsed { width:80px; }

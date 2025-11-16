@@ -61,7 +61,10 @@ if ($groupTasks && $groupTasks->num_rows > 0) {
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <style>
 :root { --primary:#1a73e8; --surface:#fff;  --bg:#f5f5f7; --text:#202124; --muted:#5f6368; }
-body { font-family:'Google Sans',sans-serif; margin:0; background:var(--bg); color:var(--text); overflow-x:hidden; }
+body {
+    font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+    background:var(--bg);
+}
 main { margin-left:250px; padding:90px 30px 40px; transition: margin-left 0.3s; }
 main.collapsed { margin-left:80px; }
 .task-section-title { font-size:1rem; font-weight:600; color:var(--primary); margin-bottom:15px; }
@@ -89,6 +92,10 @@ main.collapsed { margin-left:80px; }
     border:1px solid #e5e5e7;
     box-shadow:0 4px 20px rgba(0,0,0,0.04);
     transition:all 0.25s ease;
+}
+
+.shadow-1{
+    box-shadow: rgba(0, 0, 0, 0.1) 0px 10px 15px -3px, rgba(0, 0, 0, 0.05) 0px 4px 6px -2px;
 }
 
 /* Optional: smooth input focus effect */
@@ -147,7 +154,7 @@ main.collapsed { margin-left:80px; }
     <div class="task-section-title mt-4">Pending Group Tasks</div>
     <div class="task-cards" id="pendingTasksContainer">
         <?php if ($pendingTasks): foreach ($pendingTasks as $row): ?>
-        <div class="card-apple rounded-4" id="task-<?= $row['id'] ?>">
+        <div class="card-apple shadow-1 rounded-4" id="task-<?= $row['id'] ?>">
             <div class="task-title"><?= htmlspecialchars($row['title']) ?> 
                 <small class="text-muted">(<?= htmlspecialchars($row['group_name']) ?>)</small>
             </div>

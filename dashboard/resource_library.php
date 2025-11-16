@@ -224,7 +224,7 @@ $gstmt->close();
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <style>
-:root{--primary:#1a73e8;--surface:#fff;--bg:#f8f9fa;--text:#202124}
+:root{--primary:#1a73e8;--surface:#fff;--bg:#f5f5f7;--text:#202124}
 body{font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:var(--bg); color:var(--text); margin:0; overflow-x:hidden;}
 main{margin-left:250px;padding:90px 28px 40px;transition:margin-left .3s}
 @media(max-width:768px){main{margin-left:0!important;padding-top:80px}}
@@ -237,6 +237,18 @@ main{margin-left:250px;padding:90px 28px 40px;transition:margin-left .3s}
 .resource-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:12px; margin-top:12px; }
 .resource-card { background:#fff;border:1px solid #eee;padding:14px;border-radius:10px;display:flex;flex-direction:column;justify-content:space-between; min-height:150px;}
 .small-muted{font-size:.85rem;color:#6b7280}
+
+.card-apple {
+    background:var(--card);
+    padding:22px;
+    border-radius:var(--radius);
+    border:1px solid #e5e5e7;
+    box-shadow:0 4px 20px rgba(0,0,0,0.04);
+    transition:all 0.25s ease;
+}
+.shadow-1{
+    box-shadow: rgba(0, 0, 0, 0.1) 0px 10px 15px -3px, rgba(0, 0, 0, 0.05) 0px 4px 6px -2px;
+}
 </style>
 </head>
 <body>
@@ -286,10 +298,10 @@ main{margin-left:250px;padding:90px 28px 40px;transition:margin-left .3s}
         <?php if (count($resources) === 0): ?>
             <div class="text-center text-muted">No resources found.</div>
         <?php else: foreach ($resources as $r): ?>
-            <div class="resource-card" data-course="<?= htmlspecialchars($r['course']) ?>" data-group="<?= intval($r['group_id']) ?>">
+            <div class="resource-card shadow-1" data-course="<?= htmlspecialchars($r['course']) ?>" data-group="<?= intval($r['group_id']) ?>">
                 <div>
                     <div style="font-weight:600;font-size:1.05rem"><?= htmlspecialchars($r['title']) ?></div>
-                    <div class="mt-2"><?= nl2br(htmlspecialchars(substr($r['description'],0,220))) ?><?= strlen($r['description'])>220 ? '...' : '' ?></div>
+                    <div class="mt-2">s<?= nl2br(htmlspecialchars(substr($r['description'],0,220))) ?><?= strlen($r['description'])>220 ? '...' : '' ?></div>
                 </div>
                 <div class="d-flex justify-content-between align-items-center mt-3">
                     <div class="small-muted">
